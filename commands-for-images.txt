@@ -1,0 +1,111 @@
+##Commands for images
+
+1. Kiểm tra thông tin meta (metadata)**
+
+Xem thông tin EXIF, GPS, phần mềm chỉnh sửa, thời gian chụp…
+
+exiftool image.jpg           # Xem toàn bộ metadata
+strings image.jpg | less     # Tìm text ẩn trong file
+identify image.jpg           # Từ ImageMagick, xem định dạng và thông tin cơ bản
+
+> Thường flag hoặc gợi ý sẽ nằm ở các trường như `Comment`, `Artist`, `Description`.
+
+---
+
+2. Phân tích cấu trúc file
+
+Xem hex để phát hiện dữ liệu nhúng hoặc phần mở rộng khác bên trong.
+
+xxd image.jpg | less         # Xem nội dung file dưới dạng hex
+hexdump -C image.jpg | less  # Xem cả hex và ASCII
+binwalk image.jpg            # Quét dữ liệu nhúng (zip, png, tar…)
+binwalk -e image.jpg         # Tự động giải nén dữ liệu tìm thấy
+```
+
+> Kỹ thuật nhúng file (file carving) rất hay xuất hiện trong CTF.
+
+3. Trích xuất dữ liệu nhúng (steganography)
+
+Tìm thông tin giấu trong ảnh.
+
+steghide extract -sf image.jpg           # Giải mã nếu có dữ liệu nhúng (sẽ hỏi pass nếu có)
+zsteg image.png                          # Tìm dữ liệu ẩn trong PNG
+stegseek image.jpg wordlist.txt          # Brute-force password cho ảnh dùng steghide
+
+> `stegseek` cực nhanh, phù hợp khi đề cho kèm từ điển.
+
+---
+
+4. Phát hiện và xử lý dữ liệu nén bên trong
+
+Đôi khi ảnh chứa file nén hoặc ảnh khác bên trong.
+
+foremost image.jpg       # Tách các file nhúng (jpg, png, zip…)
+binwalk -e --run-as=root image.jpg
+
+> Lưu ý: `foremost` tự động tạo thư mục `output/` chứa dữ liệu giải nén.
+
+---
+
+5. Phân tích kênh màu / LSB
+
+Flag có thể giấu ở kênh màu R/G/B hoặc LSB.
+
+steghide extract -sf image.png
+zsteg -a image.png       # Thử tất cả phương pháp trích xuất trên PNG
+
+Hoặc tách kênh thủ công bằng Python hoặc ImageMagick:
+
+convert image.png -channel R -separate red.png
+convert image.png -channel G -separate green.png
+convert image.png -channel B -separate blue.png
+
+---
+
+6. So sánh / XOR ảnh
+
+Nếu đề cho nhiều ảnh gần giống nhau:
+
+compare img1.png img2.png diff.png    # So sánh pixel để tạo ảnh chênh lệch
+
+Hoặc dùng XOR trong Python để lộ thông tin ẩn.
+
+---
+
+7. Phân tích ảnh GIF
+
+identify -verbose anim.gif           # Xem thông tin các frame
+convert anim.gif frame_%02d.png       # Tách từng frame
+
+> Nhiều flag nằm rải rác trong các frame.
+
+---
+
+8. Kiểm tra dung lượng bất thường
+
+ls -lh image.jpg
+
+Nếu ảnh JPG bình thường mà dung lượng quá lớn (ví dụ 3MB cho ảnh bé) → khả năng chứa dữ liệu nhúng.
+
+---
+
+9. Các công cụ GUI hỗ trợ
+
+* GIMP / Photoshop: Tăng contrast, brightness để lộ chữ mờ.
+* StegSolve.jar: Cho phép duyệt từng kênh màu và bộ lọc pixel.
+* Audacity: Khi file ảnh thực ra là WAV hoặc có phần âm thanh giấu bên trong.
+
+---
+
+## Tóm tắt Cheat Sheet
+
+| Mục đích           | Công cụ / Lệnh                          |
+| ------------------ | --------------------------------------- |
+| Metadata           | `exiftool`, `strings`                   |
+| Hex view / carving | `xxd`, `hexdump`, `binwalk`, `foremost` |
+| Steganography      | `steghide`, `stegseek`, `zsteg`         |
+| Tách kênh màu      | `convert` (ImageMagick), `StegSolve`    |
+| GIF frames         | `convert`, `identify`                   |
+| Khác               | `compare`, `Audacity`                   |
+
+
